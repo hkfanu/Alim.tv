@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alim.tv — Watch, Draw & Hang Out</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="theme-dark">
+
+  <!-- ==================== 1. LOGIN / REGISTER PAGE ==================== -->
+  <section id="auth-screen" class="screen active">
+    <div class="glass-card auth-card">
+      <div class="brand-badge">✨ Alim.tv</div>
+      <h1>Welcome to Alim.tv</h1>
+      <p class="subtitle">Watch together, doodle live, and hang out with friends.</p>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="toggleAuthMode('login', this)">Login</button>
+        <button class="auth-tab" onclick="toggleAuthMode('register', this)">Register</button>
+      </div>
+
+      <form id="authForm" onsubmit="handleAuth(event)">
+        <div class="input-group">
+          <label>Display Name</label>
+          <input type="text" id="authName" placeholder="e.g., Annu ✨" required>
+        </div>
+        <div class="input-group">
+          <label>Email / Gmail</label>
+          <input type="email" id="authEmail" placeholder="you@gmail.com" required>
+        </div>
+        <div class="input-group">
+          <label>Password</label>
+          <input type="password" id="authPassword" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="primary-btn full-width" id="authSubmitBtn">Enter Alim.tv →</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ==================== 2. ROOM CREATION LOBBY ==================== -->
+  <section id="lobby-screen" class="screen">
+    <div class="glass-card lobby-card">
+      <div class="lobby-header">
+        <span class="brand-badge">✨ Alim.tv</span>
+        <span id="welcomeUserText" class="user-pill">Hi, User!</span>
+      </div>
+      <h2>Create or Customize Your Room</h2>
+      <p class="subtitle">Set your vibe and privacy rules before inviting friends.</p>
+
+      <div class="lobby-grid">
+        <div class="input-group">
+          <label>Room Name</label>
+          <input type="text" id="roomNameInput" value="Cozy Movie Night 🍿" required>
+        </div>
+
+        <div class="input-group">
+          <label>Access Privacy</label>
+          <select id="roomPrivacySelect">
+            <option value="open">🌍 Anyone with the link can enter</option>
+            <option value="approval">🔒 Host must approve guests</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label>Starting Theme</label>
+          <select id="lobbyThemeSelect" onchange="changeTheme(this.value)">
+            <option value="dark">🌙 Midnight Velvet (Dark)</option>
+            <option value="light">☀️ Cloud Cream (Light)</option>
+            <option value="sakura">🌸 Sakura Pastel</option>
+            <option value="cyber">💜 Neon Cyber</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label>Custom Background Image URL (Optional)</label>
+          <input type="text" id="lobbyBgInput" placeholder="Paste image link or leave blank...">
+        </div>
+      </div>
+
+      <button onclick="createRoom()" class="primary-btn full-width" style="margin-top: 15px;">
+        🚀 Launch Room & Generate Invite Link
+      </button>
+
+      <div class="divider"><span>OR JOIN EXISTING</span></div>
+      <div class="join-row">
+        <input type="text" id="joinCodeInput" placeholder="Paste Room Code (e.g., ALIM-4920)">
+        <button onclick="joinExistingRoom()" class="secondary-btn">Join</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 2.5 WAITING FOR HOST APPROVAL ==================== -->
+  <section id="waiting-screen" class="screen">
+    <div class="glass-card auth-card" style="text-align: center;">
+      <div class="pulse-icon">🔒</div>
+      <h2>Waiting for Host Approval...</h2>
+      <p class="subtitle">The host of this Alim.tv room has enabled Knock-to-Enter.</p>
+      <p id="waitingRoomLabel" style="margin: 15px 0; font-weight: bold;"></p>
+      <button onclick="simulateHostApprove()" class="secondary-btn">Simulate Host Approving (Demo)</button>
+    </div>
+  </section>
+
+  <!-- ==================== 3. MAIN WATCH ROOM ==================== -->
+  <section id="room-screen" class="screen room-layout">
+    
+    <!-- Top Navbar -->
+    <header class="navbar">
+      <div class="nav-left">
+        <span class="logo">✨ Alim.tv</span>
+        <span class="room-badge" id="displayRoomName">Cozy Movie Night</span>
+      </div>
+
+      <!-- Universal Video Loader -->
+      <div class="media-bar">
+        <select id="platformSelect">
+          <option value="youtube">YouTube</option>
+          <option value="bilibili">Bilibili</option>
+          <option value="twitch">Twitch</option>
+        </select>
+        <input type="text" id="videoUrlInput" placeholder="Paste YouTube link, BV id, or Twitch channel...">
+        <button onclick="loadMedia()" class="primary-btn">Play</button>
+        <button onclick="startScreenShare()" class="accent-btn">🖥️ Share Screen</button>
+      </div>
+
+      <!-- Room Controls & Share Link -->
+      <div class="nav-right">
+        <button onclick="copyInviteLink()" class="invite-btn" id="copyLinkBtn">🔗 Copy Room Link</button>
+        <button onclick="toggleCustomizeModal()" class="icon-btn" title="Customize Room">🎨</button>
+      </div>
+    </header>
+
+    <!-- Host Approval Notification Banner -->
+    <div id="knockBanner" class="knock-banner" style="display: none;">
+      <span id="knockText">👋 A guest wants to join your room!</span>
+      <div>
+        <button onclick="approveGuest(true)" class="approve-btn">Allow In</button>
+        <button onclick="approveGuest(false)" class="deny-btn">Decline</button>
+      </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <div class="workspace">
+      
+      <!-- Left / Center Interactive Stage -->
+      <main class="stage-container">
+        
+        <!-- Cute Pill Tabs -->
+        <div class="stage-tabs">
+          <button class="tab-btn active" onclick="switchStageTab('watch', this)">📺 Theater & Screen</button>
+          <button class="tab-btn" onclick="switchStageTab('draw', this)">🎨 Doodle & Notes</button>
+          <button class="tab-btn" onclick="switchStageTab('game', this)">🎮 Tic-Tac-Toe</button>
+        </div>
+
+        <!-- TAB 1: VIDEO & SCREEN SHARE -->
+        <div id="tab-watch" class="stage-view active">
+          <div class="player-frame" id="playerFrameContainer">
+            <iframe id="mediaIframe" 
+              src="https://www.youtube.com/embed/jfKfPfyJRdk" 
+              allow="autoplay; fullscreen; encrypted-media" 
+              allowfullscreen>
+            </iframe>
+            <video id="screenVideo" autoplay playsinline style="display: none;"></video>
+
+            <!-- MOVABLE CAMERA & MIC REACTION BUBBLE -->
+            <div id="draggableCamBubble" class="draggable-cam-bubble">
+              <div class="cam-inner">
+                <video id="userCamFeed" autoplay playsinline muted style="display: none;"></video>
+                <div id="camAvatarPlaceholder" class="cam-avatar-fallback">🦊</div>
+              </div>
+              <div class="cam-controls-overlay">
+                <span id="camUsernameLabel">You</span>
+                <button onclick="toggleMyCam()" id="camToggleBtn" class="cam-mini-btn" title="Toggle Camera">📷</button>
+                <button onclick="toggleMyMic()" id="micToggleBtn" class="cam-mini-btn" title="Toggle Mic">🎙️</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- TAB 2: DRAWING CANVAS + NOTES -->
+        <div id="tab-draw" class="stage-view">
+          <div class="studio-wrapper">
+            <div class="draw-toolbar">
+              <div class="tool-group">
+                <span>Brush:</span>
+                <input type="color" id="brushColor" value="#ff4d8d">
+                <button class="swatch" style="background:#ff4d8d" onclick="setColor('#ff4d8d')"></button>
+                <button class="swatch" style="background:#7c3aed" onclick="setColor('#7c3aed')"></button>
+                <button class="swatch" style="background:#38bdf8" onclick="setColor('#38bdf8')"></button>
+                <button class="swatch" style="background:#4ade80" onclick="setColor('#4ade80')"></button>
+                <button class="swatch" style="background:#facc15" onclick="setColor('#facc15')"></button>
+                <button class="swatch" style="background:#ffffff" onclick="setColor('#ffffff')"></button>
+                <button class="swatch" style="background:#1e1e2e" onclick="setColor('#1e1e2e')"></button>
+              </div>
+              <div class="tool-group">
+                <label>Size:</label>
+                <input type="range" id="brushSize" min="2" max="25" value="5">
+                <button onclick="setEraser()" class="secondary-btn">🧽 Eraser</button>
+                <button onclick="clearCanvas()" class="danger-btn">🗑️ Clear</button>
+              </div>
+            </div>
+            <div class="canvas-and-notes">
+              <canvas id="drawCanvas"></canvas>
+              <textarea id="quickNotes" placeholder="📌 Sticky Note: Write watchlists or doodle notes here..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: TIC-TAC-TOE -->
+        <div id="tab-game" class="stage-view">
+          <div class="game-box">
+            <h3 id="tttStatus">Player X's Turn</h3>
+            <div class="ttt-grid">
+              <div class="ttt-cell" onclick="playTTT(0)"></div>
+              <div class="ttt-cell" onclick="playTTT(1)"></div>
+              <div class="ttt-cell" onclick="playTTT(2)"></div>
+              <div class="ttt-cell" onclick="playTTT(3)"></div>
+              <div class="ttt-cell" onclick="playTTT(4)"></div>
+              <div class="ttt-cell" onclick="playTTT(5)"></div>
+              <div class="ttt-cell" onclick="playTTT(6)"></div>
+              <div class="ttt-cell" onclick="playTTT(7)"></div>
+              <div class="ttt-cell" onclick="playTTT(8)"></div>
+            </div>
+            <button onclick="resetTTT()" class="primary-btn" style="margin-top:15px;">New Round</button>
+          </div>
+        </div>
+
+        <!-- Bottom Cute Emoji Bar -->
+        <div class="dock-bar">
+          <div class="dock-info">✨ Alim.tv active session</div>
+          <div class="emoji-dock" id="emojiDock">
+            <button onclick="triggerFloatingEmoji('💖')">💖</button>
+            <button onclick="triggerFloatingEmoji('✨')">✨</button>
+            <button onclick="triggerFloatingEmoji('🍿')">🍿</button>
+            <button onclick="triggerFloatingEmoji('😭')">😭</button>
+            <button onclick="triggerFloatingEmoji('🔥')">🔥</button>
+            <button onclick="addCustomEmoji()" class="add-emoji-btn" title="Add Custom Emoji">+</button>
+          </div>
+        </div>
+      </main>
+
+      <!-- Right Sidebar: Live Chat -->
+      <aside class="chat-panel">
+        <div class="chat-top">
+          <span>💬 Room Chat</span>
+          <span class="online-badge" id="roomCodeDisplay">ID: ALIM-0000</span>
+        </div>
+        <ul id="chatList" class="chat-feed">
+          <li class="sys">✨ Welcome to Alim.tv! Share your live link to invite friends.</li>
+        </ul>
+        <form class="chat-form" onsubmit="sendChat(event)">
+          <input type="text" id="chatInput" placeholder="Say something cute..." required>
+          <button type="submit" class="primary-btn">Send</button>
+        </form>
+      </aside>
+    </div>
+
+    <!-- Floating Emoji Animation Container -->
+    <div id="floatingEmojiContainer"></div>
+
+    <!-- Room Customization Modal -->
+    <div id="customizeModal" class="modal-overlay" style="display: none;">
+      <div class="glass-card modal-box">
+        <h3>🎨 Customize Room Vibe</h3>
+        <div class="input-group">
+          <label>Color Theme</label>
+          <select id="modalThemeSelect" onchange="changeTheme(this.value)">
+            <option value="dark">🌙 Midnight Velvet (Dark)</option>
+            <option value="light">☀️ Cloud Cream (Light)</option>
+            <option value="sakura">🌸 Sakura Pastel</option>
+            <option value="cyber">💜 Neon Cyber</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Custom Wallpaper Image URL</label>
+          <input type="text" id="modalBgInput" placeholder="https://images.unsplash.com/...">
+          <button onclick="applyCustomBg()" class="secondary-btn" style="margin-top:6px;">Apply Wallpaper</button>
+        </div>
+        <div class="input-group">
+          <label>Room Privacy</label>
+          <select id="modalPrivacySelect" onchange="updatePrivacy(this.value)">
+            <option value="open">🌍 Anyone with link can enter</option>
+            <option value="approval">🔒 Host must approve guests</option>
+          </select>
+        </div>
+        <button onclick="toggleCustomizeModal()" class="primary-btn full-width">Done</button>
+      </div>
+    </div>
+
+  </section>
+
+  <script src="script.js"></script>
+</body>
+</html>
